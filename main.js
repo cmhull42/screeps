@@ -1,16 +1,33 @@
 require("creep");
-require("room");
 
-var behavior = require("creepbehavior");
+var behaviorLib = require("creepbehavior");
+var managerLib = require('creepmanager');
+
+var manager = managerLib.CreepManagerSingleton.getInstance();
+var room = Game.rooms["W3N4"];
 
 module.exports.loop = function() {
-    var room = Game.rooms["W3N4"];
+    // todo abstract this into DecisionManager
+    // harvesters
+    var sources = room.find(FIND_SOURCES);
+    var harvesters = manager.getRequestedRoleMembers('harvester');
 
-    room.renewCreeps();
+    var sourcesNeedingHarvesters = sources.filter(
+        (source) => !harvesters.some(
+            (h) => source.id == h.assignedSource
+        )
+    );
 
-    var creeps = room.find(FIND_MY_CREEPS);
-    for (const i in creeps) {
-        var creepImpl = behavior.CreepFactory.creepFromRole(creeps[i]);
-        creepImpl.run();
+    for (const i in sourcesNeedingHarvesters) {
+        manager.add(new behaviorLib.Harvester(room, sourcesNeedingHarvesters[i].id));
     }
+
+    // controllers
+
+    var carriers = manager.getRequestedRoleMembers('carrier');
+    for (i = carriers.length; i <= 2; i++) {
+        //manager.add(new behaviorLib.Carrier(room, room.controller.id))
+    }
+
+    manager.tick();
 }
